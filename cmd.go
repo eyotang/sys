@@ -3,6 +3,7 @@ package sys
 import (
 	"bytes"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -51,9 +52,12 @@ func CmdRunWithTimeout(cmd *exec.Cmd, timeout time.Duration) (error, bool) {
 		}()
 
 		//IMPORTANT: cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} is necessary before cmd.Start()
-		err = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		if err != nil {
-			log.Println("kill failed, error:", err)
+		if p, err := os.FindProcess(-cmd.Process.Pid); err != nil {
+			log.Println("can't find process, error:", err)
+		} else {
+			if err = p.Signal(syscall.SIGKILL); err != nil {
+				log.Println("kill failed, error:", err)
+			}
 		}
 
 		return err, true
